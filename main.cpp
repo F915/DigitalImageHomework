@@ -20,7 +20,7 @@ int main()
         }
         // imshow("input", input);
         waitKey(1);
-        resize(input, output, Size(511, 511));
+        resize(input, output, Size(256, 256));
         Mat HSV_image;
         cvtColor(output, HSV_image, COLOR_BGR2HSV);
         Mat H, S, V;
@@ -63,6 +63,38 @@ int main()
         //imshow("H",op_H);
         //imshow("S",op_S);
         //imshow("S+H",HS);
+        vector<vector<Point> > hull(contours.size());
+        for (int i = 0; i < contours.size(); i++)
+        {
+            convexHull(Mat(contours[i]), hull[i], false);
+        }
+        drawContours(output, hull, -1, Scalar(0, 255, 0), 3);
+
+        RotatedRect rectPoint;
+        for (int i = 0; i < contours.size(); i++)
+        {
+          rectPoint = minAreaRect(contours[i]);
+          Point2f fourPoint2f[4];
+          rectPoint.points(fourPoint2f);
+           for (int j = 0; j < 4; j++)
+            {
+              line(output, fourPoint2f[j], fourPoint2f[(j + 1) % 4], Scalar(0, 0, 255), 3);
+            }
+        } //定义一个存储以上四个点的坐标的变量
+        //Point2f fourPoint2f[4];
+        //将rectPoint变量中存储的坐标值放到 fourPoint的数组中
+        for (int i = 0; i < contours.size();i++)
+        {
+            //rectPoint[i].points(fourPoint2f);
+            for (int j = 0; j < 4; j++)
+            {
+              //  line(output, fourPoint2f[j], fourPoint2f[(j + 1) % 4], Scalar(0, 0, 255), 3);
+            }
+        } //rectPoint.points(fourPoint2f);
+        //for (int i = 0; i < 4; i++)
+        //{
+        //    line(output, fourPoint2f[i], fourPoint2f[(i + 1)%4], Scalar(0,0,255), 3);
+        //}
 
         imshow("Res", output);
     }
