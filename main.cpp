@@ -12,7 +12,7 @@
 //Update Logs
 //2018.05.05    Create project and test algorithms.
 //2018.05.06    Restructuring codes.
-//2018.05.07    Add processFlame function.
+//2018.05.07    Finish processFlame function.
 
 #include <iostream>
 #include <cstdio>
@@ -79,10 +79,10 @@ int main(int argc, char *argv[])
         {
             resize(origin_image, origin_image, Size(512, 512));
             imshow("origin_image", origin_image);
-            waitKey(1);
+            waitKey(200);
             //Image or video processing.
-            /* 
             binary_contour_image = processFlame(origin_image);
+            /*
             contour_result = processContour(binary_contour_image);
 
             report_result = decideReport(contour_result);
@@ -91,8 +91,8 @@ int main(int argc, char *argv[])
         }
 
     } while (video_flag == 1 && exit_flag == 0);
-    destroyAllWindows();
     waitKey(0);
+    destroyAllWindows();
     return 0;
 }
 
@@ -110,6 +110,8 @@ int initProgram(char *input_name, int *input_type)
     printf("//******************************************************//\n");
 
     int return_state = 0;
+    char channal_name_origin[4][30] = {"H_channal", "S_channal", "V_channal", "Error"};
+    char channal_name_binary[4][30] = {"H_channal_binary", "S_channal_binary", "V_channal_binary", "Error"};
 
     printf("\nPlease input the number of input file type.\n0 Image File\n1 Video File\n2 Video Stream\n");
     scanf("%d", input_type);
@@ -132,6 +134,20 @@ int initProgram(char *input_name, int *input_type)
         printf("\nError 0x00000003:Unmatched input file's name with type.\n");
         return_state = -3;
     }
+
+    namedWindow("origin_image");
+    namedWindow("Answer");
+    for (int i = 0; i < 2; i++)
+    {
+        namedWindow(channal_name_origin[i]);
+        namedWindow(channal_name_binary[i]);
+        createTrackbar("gauss_kernal_size", channal_name_origin[i], nullptr, 127);
+        createTrackbar("erode_element_size", channal_name_origin[i], nullptr, 255);
+        createTrackbar("dilate_element_size", channal_name_origin[i], nullptr, 255);
+        createTrackbar("threshold_value_high", channal_name_origin[i], nullptr, 255);
+        createTrackbar("threshold_value_low", channal_name_origin[i], nullptr, 255);
+    }
+
     printf("\nInitialized program.\n");
     return return_state;
 }
@@ -179,6 +195,36 @@ Mat getFlame(char *input_name, int input_type)
     return return_mat;
 }
 
+Mat processFlame(Mat origin_image)
+{
+    static Mat hsv_image;
+    cvtColor(origin_image, hsv_image, COLOR_BGR2HSV);
+    static Mat h_channal, s_channal, v_channal;
+    vector<Mat> color_channals;
+    split(hsv_image, color_channals);
+    h_channal = color_channals.at(0);
+    s_channal = color_channals.at(1);
+    v_channal = color_channals.at(2);
+    printf("\nSplit 3 channals OK\n");
+
+    /*static Mat map_h_channal, map_s_channal, map_v_channal;
+    applyColorMap(h_channal, map_h_channal, COLORMAP_HSV);
+    applyColorMap(s_channal, map_s_channal, COLORMAP_JET);
+    applyColorMap(v_channal, map_v_channal, COLORMAP_JET);
+    imshow("map_h_channal", map_h_channal);
+    imshow("map_s_channal", map_s_channal);
+    imshow("map_v_channal", map_v_channal);
+    printf("\nRemap 3 channals OK\n");
+*/
+    static Mat binary_h_channal, binary_s_channal;
+    binary_h_channal = processChannal(h_channal, H_CHANNAL);
+    binary_s_channal = processChannal(s_channal, S_CHANNAL);
+
+    return binary_h_channal & binary_s_channal;
+    //If Kinect used.
+    //Mat processDChannal(Mat origin_image);
+}
+
 Mat processChannal(Mat single_channal, int channal_type)
 {
     int gauss_kernal_size = 0;
@@ -187,43 +233,38 @@ Mat processChannal(Mat single_channal, int channal_type)
     int threshold_value_high = 0;
     int threshold_value_low = 0;
     static Mat return_mat;
-    char channal_name_origin[4][10] = {"H_channal", "S_channal", "V_channal", "Error"};
-    char channal_name_binary[4][10] = {"H_channal_binary", "S_channal_binary", "V_channal_binary", "Error"};
+    char channal_name_origin[4][30] = {"H_channal", "S_channal", "V_channal", "Error"};
+    char channal_name_binary[4][30] = {"H_channal_binary", "S_channal_binary", "V_channal_binary", "Error"};
 
-    char *channal_name,*binary_channal_name;
+    char *channal_name, *binary_channal_name;
 
     Mat map_channal;
-    if (channal_type == H_CHANNAL)
+    switch (channal_type)
     {
+    case H_CHANNAL:
         channal_name = channal_name_origin[H_CHANNAL];
         binary_channal_name = channal_name_binary[H_CHANNAL];
         applyColorMap(single_channal, map_channal, COLORMAP_HSV);
-    }
-    else if (channal_type == S_CHANNAL)
-    {
+        break;
+    case S_CHANNAL:
         binary_channal_name = channal_name_binary[S_CHANNAL];
         channal_name = channal_name_origin[S_CHANNAL];
         applyColorMap(single_channal, map_channal, COLORMAP_JET);
-    }
-    else if (channal_type == V_CHANNAL)
-    {
+        break;
+    case V_CHANNAL:
         binary_channal_name = channal_name_binary[V_CHANNAL];
         channal_name = channal_name_origin[V_CHANNAL];
         applyColorMap(single_channal, map_channal, COLORMAP_JET);
+        break;
+    default:
+        printf("\nError 0x21000001:Error channal type.\n");
+        return_mat = 0;
+        break;
     }
-    else
-    {
-        printf("\nError 0x21000001:Error channal type.\n")
-            return_mat = 0;
-    }
+
     if (!map_channal.empty())
     {
         imshow(channal_name, map_channal);
-        createTrackbar("gauss_kernal_size", channal_name, &gauss_kernal_size, 64);
-        createTrackbar("erode_element_size", channal_name, &erode_element_size, 128);
-        createTrackbar("dilate_element_size", channal_name, &dilate_element_size, 128);
-        createTrackbar("threshold_value_high", channal_name, &threshold_value_high, 255);
-        createTrackbar("threshold_value_low", channal_name, &threshold_value_low, 255);
 
         gauss_kernal_size = getTrackbarPos("gauss_kernal_size", channal_name);
         erode_element_size = getTrackbarPos("erode_element_size", channal_name);
@@ -232,58 +273,46 @@ Mat processChannal(Mat single_channal, int channal_type)
         threshold_value_low = getTrackbarPos("threshold_value_low", channal_name);
 
         /*
-        setTrackbar("gauss_kernal_size", channal_name, gauss_kernal_size);
-        setTrackbar("erode_element_size", channal_name, erode_element_size);
-        setTrackbar("dilate_element_size", channal_name, dilate_element_size);
-        setTrackbar("threshold_value_high", channal_name, threshold_value_high);
-        setTrackbar("threshold_value_low", channal_name, threshold_value_low);
+        setTrackbarPos("gauss_kernal_size", channal_name, gauss_kernal_size);
+        setTrackbarPos("erode_element_size", channal_name, erode_element_size);
+        setTrackbarPos("dilate_element_size", channal_name, dilate_element_size);
+        setTrackbarPos("threshold_value_high", channal_name, threshold_value_high);
+        setTrackbarPos("threshold_value_low", channal_name, threshold_value_low);
         */
 
-        gauss_kernal_size = 2 * gauss_kernal_size + 1;
+        // gauss_kernal_size = 2 * gauss_kernal_size + 1;
+        if (erode_element_size == 0)
+        {
+            erode_element_size = 1;
+            setTrackbarPos("erode_element_size", channal_name, erode_element_size);
+        }
+        if (dilate_element_size == 0)
+        {
+            dilate_element_size = 1;
+            setTrackbarPos("dilate_element_size", channal_name, dilate_element_size);
+        }
+        if (threshold_value_high == 0)
+        {
+            threshold_value_high = 255;
+            setTrackbarPos("threshold_value_high", channal_name, threshold_value_high);
+        }
+
         static Mat erode_element = getStructuringElement(MORPH_RECT, Size(erode_element_size, erode_element_size));
         static Mat dilate_element = getStructuringElement(MORPH_RECT, Size(dilate_element_size, dilate_element_size));
 
-        GaussianBlur(single_channal, single_channal, Size(gauss_kernal_size, gauss_kernal_size), 0);
+        GaussianBlur(single_channal, single_channal, Size(gauss_kernal_size * 2 + 1, gauss_kernal_size * 2 + 1), 0);
         erode(single_channal, single_channal, erode_element);
         dilate(single_channal, single_channal, dilate_element);
-        threshold(single_channal,single_channal,threshold_value_high,255,THRESH_TOZERO);
-        threshold(single_channal,single_channal,threshold_value_low,255,THRESH_TOZERO_INV);
-        threshold(return_mat,single_channal,0,255,THRESH_BINARY);
-
-        imshow(binary_channal_name,return_channal);
-        
+        threshold(single_channal, single_channal, threshold_value_high, 255, THRESH_TOZERO_INV);
+        threshold(single_channal, single_channal, threshold_value_low, 255, THRESH_TOZERO);
+        threshold(single_channal, return_mat, 0, 255, THRESH_BINARY);
+        // return_mat = single_channal;
+        if (!return_mat.empty())
+        {
+            imshow(binary_channal_name, return_mat);
+        }
     }
     return return_mat;
-}
-
-Mat processFlame(Mat origin_image)
-{
-    static Mat hsv_image;
-    cvtColor(origin_image, hsv_image, COLOR_BGR2HSV);
-    static Mat h_channal, s_channal, v_channal;
-    vector<Mat> color_channals;
-    split(hsv_image, color_channals);
-    h_channal = color_channels.at(0);
-    s_channal = color_channels.at(1);
-    v_channal = color_channels.at(2);
-    printf("\nSplit 3 channals OK\n");
-
-    /*
-    static Mat map_h_channal, map_s_channal, map_v_channal;
-    applyColorMap(h_channal, map_h_channal, COLORMAP_HSV);
-    applyColorMap(s_channal, map_s_channal, COLORMAP_JET);
-    applyColorMap(v_channal, map_v_channal, COLORMAP_JET);
-    imshow("map_h_channal", map_h_channal);
-    imshow("map_s_channal", map_s_channal);
-    imshow("map_v_channal", map_v_channal);
-    printf("\nRemap 3 channals OK\n");
-    */
-
-    static Mat binary_h_channal, binary_s_channal;
-    binary_h_channal = processChannal(h_channal, H_CHANNAL);
-    binary_s_channal = processChannal(s_channal, S_CHANNAL);
-    //If Kinect used.
-    //Mat processDChannal(Mat origin_image);
 }
 
 int *processContour(Mat binary_contour_image)
