@@ -39,11 +39,10 @@ int initProgram(char *input_name, int *input_type);
 Mat getFlame(char *input_name, int input_type);
 Mat processFlame(Mat origin_image);
 Mat processChannal(Mat single_channal, int channal_type);
-int *processContour(Mat binary_contour_image);
+int processContour(Mat binary_contour_image, int *contours_squares);
 int decideReport(int *contour_result);
 int showResult(int report_result);
 
-//******************************************************//
 int main(int argc, char *argv[])
 {
     Mat origin_image;
@@ -54,6 +53,7 @@ int main(int argc, char *argv[])
     int exit_flag = 0;
     int contour_result[3][2];
     int report_result;
+    static int contours_squares[3] = {0};
 
     init_state = initProgram(input_name, &input_type);
     if (init_state != 0)
@@ -82,9 +82,9 @@ int main(int argc, char *argv[])
             waitKey(200);
             //Image or video processing.
             binary_contour_image = processFlame(origin_image);
+            memset(contours_squares, 0, sizeof(contours_squares));
+            processContour(binary_contour_image, contours_squares);
             /*
-            contour_result = processContour(binary_contour_image);
-
             report_result = decideReport(contour_result);
             showResult(report_result); //bingo
             */
@@ -135,8 +135,9 @@ int initProgram(char *input_name, int *input_type)
         return_state = -3;
     }
 
-    namedWindow("origin_image");
+    namedWindow("Origin_image");
     namedWindow("Answer");
+    namedWindow("Mix_contours");
     for (int i = 0; i < 2; i++)
     {
         namedWindow(channal_name_origin[i]);
@@ -296,6 +297,11 @@ Mat processChannal(Mat single_channal, int channal_type)
             threshold_value_high = 255;
             setTrackbarPos("threshold_value_high", channal_name, threshold_value_high);
         }
+        if (threshold_value_high < threshold_value_low)
+        {
+            threshold_value_high = threshold_value_low;
+            setTrackbarPos("threshold_value_high", channal_name, threshold_value_high);
+        }
 
         static Mat erode_element = getStructuringElement(MORPH_RECT, Size(erode_element_size, erode_element_size));
         static Mat dilate_element = getStructuringElement(MORPH_RECT, Size(dilate_element_size, dilate_element_size));
@@ -305,7 +311,7 @@ Mat processChannal(Mat single_channal, int channal_type)
         dilate(single_channal, single_channal, dilate_element);
         threshold(single_channal, single_channal, threshold_value_high, 255, THRESH_TOZERO_INV);
         threshold(single_channal, single_channal, threshold_value_low, 255, THRESH_TOZERO);
-        threshold(single_channal, return_mat, 0, 255, THRESH_BINARY);
+        threshold(single_channal, return_mat, 0, 255, THRESH_BINARY_INV);
         // return_mat = single_channal;
         if (!return_mat.empty())
         {
@@ -315,9 +321,33 @@ Mat processChannal(Mat single_channal, int channal_type)
     return return_mat;
 }
 
-int *processContour(Mat binary_contour_image)
+int processContour(Mat binary_contour_image, int *contours_squares)
 {
-    ;
+    static Mat color_binary_contour_image;
+    applyColorMap(binary_contour_image, color_binary_contour_image, COLORMAP_BONE);
+    vector<vector<Point>> nearest_contours;
+    findContours(binary_contour_image, nearest_contours, RETR_EXTERNAL, CHAIN_APPROX_NONE);
+    vector<vector<Point>> contours_hull(nearest_contours.size());
+    for (int i = 0; i < nearest_contours.size(); i++)
+    {
+        convexHull(Mat(nearest_contours[i]), contours_hull[i], true);
+    }
+    RotatedRect min_rectangle_points;
+    Point2f single_rectangle_point[4];
+    drawContours(color_binary_contour_image, nearest_contours, -1, Scalar(255, 0, 0), 1);
+    drawContours(color_binary_contour_image, contours_hull, -1, Scalar(0, 255, 0), 1);
+
+    for (int i = 0; i < nearest_contours.size(); i++)
+    {
+        min_rectangle_points = minAreaRect(nearest_contours[i]);
+        min_rectangle_points.points(single_rectangle_point);
+        for (int j = 0; j < 4; j++)
+        {
+            line(color_binary_contour_image, single_rectangle_point[j], single_rectangle_point[(j + 1) % 4], Scalar(0, 0, 255), 1);
+        }
+    }
+    imshow("Mix_contours", color_binary_contour_image);
+    return nearest_contours.size();
 }
 
 int decideReport(int *contour_result)
