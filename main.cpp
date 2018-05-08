@@ -13,10 +13,12 @@
 //2018.05.05    Create project and test algorithms.
 //2018.05.06    Restructuring codes.
 //2018.05.07    Finish processFlame function.
+//2018.05.08    Finish all functions.
 
 #include <iostream>
 #include <cstdio>
 #include <opencv/cv.hpp>
+#include <math.h>
 
 #define IMAGE_FILE 0
 #define VIDEO_FILE 1
@@ -39,8 +41,8 @@ int initProgram(char *input_name, int *input_type);
 Mat getFlame(char *input_name, int input_type);
 Mat processFlame(Mat origin_image);
 Mat processChannal(Mat single_channal, int channal_type);
-int processContour(Mat binary_contour_image, int *contours_squares);
-int decideReport(int *contour_result);
+int processContour(Mat binary_contour_image, double contours_square_lengtn[3][2]);
+int decideReport(double contours_square_lengtn[3][2]);
 int showResult(int report_result);
 
 int main(int argc, char *argv[])
@@ -53,7 +55,8 @@ int main(int argc, char *argv[])
     int exit_flag = 0;
     int contour_result[3][2];
     int report_result;
-    static int contours_squares[3] = {0};
+    int contour_number;
+    static double contours_square_lengtn[3][2] = {0};
 
     init_state = initProgram(input_name, &input_type);
     if (init_state != 0)
@@ -78,19 +81,24 @@ int main(int argc, char *argv[])
         else
         {
             resize(origin_image, origin_image, Size(512, 512));
-            imshow("origin_image", origin_image);
-            waitKey(200);
+            imshow("Origin_image", origin_image);
+            waitKey(1);
             //Image or video processing.
             binary_contour_image = processFlame(origin_image);
-            memset(contours_squares, 0, sizeof(contours_squares));
-            processContour(binary_contour_image, contours_squares);
-            /*
-            report_result = decideReport(contour_result);
-            showResult(report_result); //bingo
-            */
+            memset(contours_square_lengtn, 0, sizeof(contours_square_lengtn));
+            contour_number = processContour(binary_contour_image, contours_square_lengtn);
+            if (contour_number != 0)
+            {
+                report_result = decideReport(contours_square_lengtn);
+                showResult(report_result);
+            }
+            else
+            {
+                showResult(NO_ANSWER);
+            }
         }
 
-    } while (video_flag == 1 && exit_flag == 0);
+    } while (exit_flag == 0);
     waitKey(0);
     destroyAllWindows();
     return 0;
@@ -234,8 +242,8 @@ Mat processChannal(Mat single_channal, int channal_type)
     int threshold_value_high = 0;
     int threshold_value_low = 0;
     static Mat return_mat;
-    char channal_name_origin[4][30] = {"H_channal", "S_channal", "V_channal", "Error"};
-    char channal_name_binary[4][30] = {"H_channal_binary", "S_channal_binary", "V_channal_binary", "Error"};
+    static char channal_name_origin[4][30] = {"H_channal", "S_channal", "V_channal", "Error"};
+    static char channal_name_binary[4][30] = {"H_channal_binary", "S_channal_binary", "V_channal_binary", "Error"};
 
     char *channal_name, *binary_channal_name;
 
@@ -321,7 +329,7 @@ Mat processChannal(Mat single_channal, int channal_type)
     return return_mat;
 }
 
-int processContour(Mat binary_contour_image, int *contours_squares)
+int processContour(Mat binary_contour_image, double contours_square_lengtn[3][2])
 {
     static Mat color_binary_contour_image;
     applyColorMap(binary_contour_image, color_binary_contour_image, COLORMAP_BONE);
@@ -336,28 +344,110 @@ int processContour(Mat binary_contour_image, int *contours_squares)
     Point2f single_rectangle_point[4];
     drawContours(color_binary_contour_image, nearest_contours, -1, Scalar(255, 0, 0), 1);
     drawContours(color_binary_contour_image, contours_hull, -1, Scalar(0, 255, 0), 1);
+    static double current_contour_square, current_contour_length;
 
     for (int i = 0; i < nearest_contours.size(); i++)
     {
         min_rectangle_points = minAreaRect(nearest_contours[i]);
         min_rectangle_points.points(single_rectangle_point);
+        current_contour_square = min_rectangle_points.size.area();
+        current_contour_length = min_rectangle_points.size.height;
+        current_contour_length += min_rectangle_points.size.width;
+        current_contour_length *= 2;
+        if (contours_square_lengtn[2][0] <= current_contour_square)
+        {
+            contours_square_lengtn[2][0] = current_contour_square;
+        }
+        if (contours_square_lengtn[2][1] <= current_contour_length)
+        {
+            contours_square_lengtn[2][1] = current_contour_length;
+        }
         for (int j = 0; j < 4; j++)
         {
             line(color_binary_contour_image, single_rectangle_point[j], single_rectangle_point[(j + 1) % 4], Scalar(0, 0, 255), 1);
         }
     }
+
+    //Computing square and length
+
+    for (int i = 0; i < nearest_contours.size(); i++)
+    {
+        current_contour_length = arcLength(nearest_contours[i], true);
+        current_contour_square = contourArea(nearest_contours[i]);
+        if (contours_square_lengtn[0][0] <= current_contour_square)
+        {
+            contours_square_lengtn[0][0] = current_contour_square;
+        }
+        if (contours_square_lengtn[0][1] <= current_contour_length)
+        {
+            contours_square_lengtn[0][1] = current_contour_length;
+        }
+    }
+    for (int i = 0; i < contours_hull.size(); i++)
+    {
+        current_contour_length = arcLength(contours_hull[i], true);
+        current_contour_square = contourArea(contours_hull[i]);
+        if (contours_square_lengtn[1][0] <= current_contour_square)
+        {
+            contours_square_lengtn[1][0] = current_contour_square;
+        }
+        if (contours_square_lengtn[1][1] <= current_contour_length)
+        {
+            contours_square_lengtn[1][1] = current_contour_length;
+        }
+    }
+
+    printf("\nNearest contour Length:%lf, Square:%lf\n", contours_square_lengtn[0][0], contours_square_lengtn[0][1]);
+    printf("\nHull contour Length:%lf, Square:%lf\n", contours_square_lengtn[1][0], contours_square_lengtn[1][1]);
+    printf("\nRectangle contour Length:%lf, Square:%lf\n", contours_square_lengtn[2][0], contours_square_lengtn[2][1]);
     imshow("Mix_contours", color_binary_contour_image);
     return nearest_contours.size();
 }
 
-int decideReport(int *contour_result)
+int decideReport(double contours_square_lengtn[3][2])
 {
-    ;
+
+    static char answer_name[4][10] = {"No Answer", "Rock", "Paper", "Scissors"};
+    static int return_result;
+    static double nearest_contour_square, hull_contour_square;
+    nearest_contour_square = contours_square_lengtn[0][1];
+    hull_contour_square = contours_square_lengtn[1][1];
+    static double sub_hull_nearest;
+    sub_hull_nearest = nearest_contour_square - hull_contour_square;
+
+    printf("\nNearest contour Length in decideReport:%lf, Square:%lf\n", contours_square_lengtn[0][0], contours_square_lengtn[0][1]);
+    printf("\nHull contour Length in decideReport:%lf, Square:%lf\n", contours_square_lengtn[1][0], contours_square_lengtn[1][1]);
+    printf("\nRectangle contour Length in decideReport:%lf, Square:%lf\n", contours_square_lengtn[2][0], contours_square_lengtn[2][1]);
+
+    printf("\nHull contour square in decideReport is %lf\n", hull_contour_square);
+    printf("\nNearest contour square in decideReport is %lf\n", nearest_contour_square);
+    printf("\nSubtract between hull and nearest in decideReport is %lf\n", sub_hull_nearest);
+    if (sub_hull_nearest > 30 && sub_hull_nearest < 150)
+    {
+        return_result = ROCK;
+        printf("\nHuman gives the answer %s\n", answer_name[ROCK]);
+    }
+    else if (sub_hull_nearest >= 150 && sub_hull_nearest < 600)
+    {
+        return_result = SCISSORS;
+        printf("\nHuman gives the answer %s\n", answer_name[SCISSORS]);
+    }
+    else if (sub_hull_nearest >= 600 && sub_hull_nearest < 1500)
+    {
+        return_result = PAPER;
+        printf("\nHuman gives the answer %s\n", answer_name[PAPER]);
+    }
+    else
+    {
+        return_result = NO_ANSWER;
+        printf("\nHuman gives the answer %s\n", answer_name[NO_ANSWER]);
+    }
+    return return_result;
 }
 
 int showResult(int report_result)
 {
-    static const char answer_name[4][10] = {"No Answer", "Rock", "Paper", "Scissors"};
+    static char answer_name[4][10] = {"No Answer", "Rock", "Paper", "Scissors"};
     static Mat answer_image;
     static int answer_computer;
 
@@ -374,7 +464,7 @@ int showResult(int report_result)
         break;
     case ROCK:
         answer_computer = PAPER;
-        answer_image = imread("1.jpg");
+        answer_image = imread("2.jpg");
         if (answer_image.empty())
         {
             printf("\nError 0x50000002:Cannot open answer image %s.\n", answer_name[answer_computer]);
@@ -382,7 +472,7 @@ int showResult(int report_result)
         break;
     case PAPER:
         answer_computer = SCISSORS;
-        answer_image = imread("2.jpg");
+        answer_image = imread("3.jpg");
         if (answer_image.empty())
         {
             printf("\nError 0x50000003:Cannot open answer image %s.\n", answer_name[answer_computer]);
@@ -390,7 +480,7 @@ int showResult(int report_result)
         break;
     case SCISSORS:
         answer_computer = ROCK;
-        answer_image = imread("3.jpg");
+        answer_image = imread("1.jpg");
         if (answer_image.empty())
         {
             printf("\nError 0x50000004:Cannot open answer image %s.\n", answer_name[answer_computer]);
