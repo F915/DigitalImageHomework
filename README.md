@@ -1,12 +1,12 @@
-# Rock,Paper,Scissors
+# Rock, Paper, Scissors
 
-## DigitalImagesProcess
+## Digital Images Process
 
-F915
-<https:github.com/F915/FingersGame>
+F915  
+<https:github.com/F915/FingersGame>  
 2018.05.05
 
-##UpdateLogs
+## Update Logs
 
 2018.05.05 Create project and test algorithms.  
 2018.05.06 Restructuring codes.  
