@@ -3,7 +3,7 @@
 ## Digital Images Process
 
 F915  
-<https:github.com/F915/FingersGame>  
+<https://github.com/F915/FingersGame>  
 2018.05.05
 
 ## Update Logs
