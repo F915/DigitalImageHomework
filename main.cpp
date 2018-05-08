@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
     init_state = initProgram(input_name, &input_type);
     if (init_state != 0)
     {
-        printf("\nERROR 0x00000000:Error initialize program.\n");
+        printf("\nERROR 0x00000000:Error initialize program.");
         exit_flag = 1;
     }
     do
@@ -74,7 +74,7 @@ int main(int argc, char *argv[])
         origin_image = getFlame(input_name, input_type);
         if (origin_image.empty())
         {
-            printf("\nError 0x10000000:Cannot open input file or port: %s.\n", input_name);
+            printf("\nError 0x10000000:Cannot open input file or port: %s.", input_name);
             exit_flag = 1;
             break;
         }
@@ -125,7 +125,7 @@ int initProgram(char *input_name, int *input_type)
     scanf("%d", input_type);
     if (*input_type > 2 || *input_type < 0)
     {
-        printf("\nERROR 0x00000002:Error input file's type.\n");
+        printf("\nERROR 0x00000002:Error input file's type.");
         return_state = -1;
     }
 
@@ -133,13 +133,13 @@ int initProgram(char *input_name, int *input_type)
     scanf("%s", input_name);
     if (input_name == NULL)
     {
-        printf("\nERROR 0x00000001:Error input file's name.\n");
+        printf("\nERROR 0x00000001:Error input file's name.");
         return_state = -2;
     }
 
     if (*input_type == 2 && (strlen(input_name) > 1 || *input_name < '0' || *input_name > '9'))
     {
-        printf("\nError 0x00000003:Unmatched input file's name with type.\n");
+        printf("\nError 0x00000003:Unmatched input file's name with type.");
         return_state = -3;
     }
 
@@ -157,7 +157,7 @@ int initProgram(char *input_name, int *input_type)
         createTrackbar("threshold_value_low", channal_name_origin[i], nullptr, 255);
     }
 
-    printf("\nInitialized program.\n");
+    printf("\nInitialized program.");
     return return_state;
 }
 
@@ -176,7 +176,7 @@ Mat getFlame(char *input_name, int input_type)
             return_mat = imread(input_name);
             if (return_mat.empty())
             {
-                printf("\nError 0x10000001:Cannot open image: %s.\n", input_name);
+                printf("\nError 0x10000001:Cannot open image: %s.", input_name);
             }
             break;
         case VIDEO_FILE:
@@ -195,10 +195,10 @@ Mat getFlame(char *input_name, int input_type)
         video.read(return_mat);
         if (return_mat.empty())
         {
-            printf("\nError 0x10000002:Cannot open video: %s.\n", input_name);
+            printf("\nError 0x10000002:Cannot open video: %s.", input_name);
         }
     }
-    printf("\nGot %d flame.\n", flame_number);
+    printf("\nGot %d flame.", flame_number);
     flame_number++;
     //waitKey(1);
     return return_mat;
@@ -214,7 +214,7 @@ Mat processFlame(Mat origin_image)
     h_channal = color_channals.at(0);
     s_channal = color_channals.at(1);
     v_channal = color_channals.at(2);
-    printf("\nSplit 3 channals OK\n");
+    printf("\nSplit 3 channals OK");
 
     /*static Mat map_h_channal, map_s_channal, map_v_channal;
     applyColorMap(h_channal, map_h_channal, COLORMAP_HSV);
@@ -224,11 +224,13 @@ Mat processFlame(Mat origin_image)
     imshow("map_s_channal", map_s_channal);
     imshow("map_v_channal", map_v_channal);
     printf("\nRemap 3 channals OK\n");
-*/
+    */
     static Mat binary_h_channal, binary_s_channal;
     binary_h_channal = processChannal(h_channal, H_CHANNAL);
+    //printf("\nProcess H channal OK\n");
     binary_s_channal = processChannal(s_channal, S_CHANNAL);
-
+    //printf("\nProcess S channal OK\n");
+     printf("\nMix 2 binary channals OK");
     return binary_h_channal & binary_s_channal;
     //If Kinect used.
     //Mat processDChannal(Mat origin_image);
@@ -254,19 +256,22 @@ Mat processChannal(Mat single_channal, int channal_type)
         channal_name = channal_name_origin[H_CHANNAL];
         binary_channal_name = channal_name_binary[H_CHANNAL];
         applyColorMap(single_channal, map_channal, COLORMAP_HSV);
+        printf("\nRemap %s OK", channal_name);
         break;
     case S_CHANNAL:
         binary_channal_name = channal_name_binary[S_CHANNAL];
         channal_name = channal_name_origin[S_CHANNAL];
         applyColorMap(single_channal, map_channal, COLORMAP_JET);
+        printf("\nRemap %s OK", channal_name);
         break;
     case V_CHANNAL:
         binary_channal_name = channal_name_binary[V_CHANNAL];
         channal_name = channal_name_origin[V_CHANNAL];
         applyColorMap(single_channal, map_channal, COLORMAP_JET);
+        printf("\nRemap %s OK", channal_name);
         break;
     default:
-        printf("\nError 0x21000001:Error channal type.\n");
+        printf("\nError 0x21000001:Error channal type.");
         return_mat = 0;
         break;
     }
@@ -315,17 +320,19 @@ Mat processChannal(Mat single_channal, int channal_type)
         static Mat dilate_element = getStructuringElement(MORPH_RECT, Size(dilate_element_size, dilate_element_size));
 
         GaussianBlur(single_channal, single_channal, Size(gauss_kernal_size * 2 + 1, gauss_kernal_size * 2 + 1), 0);
-        erode(single_channal, single_channal, erode_element);
-        dilate(single_channal, single_channal, dilate_element);
         threshold(single_channal, single_channal, threshold_value_high, 255, THRESH_TOZERO_INV);
         threshold(single_channal, single_channal, threshold_value_low, 255, THRESH_TOZERO);
-        threshold(single_channal, return_mat, 0, 255, THRESH_BINARY_INV);
-        // return_mat = single_channal;
+        threshold(single_channal, single_channal, 0, 255, THRESH_BINARY_INV);
+        erode(single_channal, single_channal, erode_element);
+        dilate(single_channal, single_channal, dilate_element);
+
+        return_mat = single_channal;
         if (!return_mat.empty())
         {
             imshow(binary_channal_name, return_mat);
         }
     }
+    printf("\nProcess %s OK", channal_name);
     return return_mat;
 }
 
@@ -333,13 +340,17 @@ int processContour(Mat binary_contour_image, double contours_square_lengtn[3][2]
 {
     static Mat color_binary_contour_image;
     applyColorMap(binary_contour_image, color_binary_contour_image, COLORMAP_BONE);
+
     vector<vector<Point>> nearest_contours;
     findContours(binary_contour_image, nearest_contours, RETR_EXTERNAL, CHAIN_APPROX_NONE);
+    printf("\nFound %d contours", nearest_contours.size());
+
     vector<vector<Point>> contours_hull(nearest_contours.size());
     for (int i = 0; i < nearest_contours.size(); i++)
     {
         convexHull(Mat(nearest_contours[i]), contours_hull[i], true);
     }
+
     RotatedRect min_rectangle_points;
     Point2f single_rectangle_point[4];
     drawContours(color_binary_contour_image, nearest_contours, -1, Scalar(255, 0, 0), 1);
@@ -367,6 +378,7 @@ int processContour(Mat binary_contour_image, double contours_square_lengtn[3][2]
             line(color_binary_contour_image, single_rectangle_point[j], single_rectangle_point[(j + 1) % 4], Scalar(0, 0, 255), 1);
         }
     }
+    printf("\nFound other contours OK");
 
     //Computing square and length
 
@@ -397,9 +409,9 @@ int processContour(Mat binary_contour_image, double contours_square_lengtn[3][2]
         }
     }
 
-    printf("\nNearest contour Length:%lf, Square:%lf\n", contours_square_lengtn[0][0], contours_square_lengtn[0][1]);
-    printf("\nHull contour Length:%lf, Square:%lf\n", contours_square_lengtn[1][0], contours_square_lengtn[1][1]);
-    printf("\nRectangle contour Length:%lf, Square:%lf\n", contours_square_lengtn[2][0], contours_square_lengtn[2][1]);
+    printf("\nNearest contour Square:%lf, Length:%lf", contours_square_lengtn[0][0], contours_square_lengtn[0][1]);
+    printf("\nHull contour Square:%lf, Length:%lf", contours_square_lengtn[1][0], contours_square_lengtn[1][1]);
+    printf("\nRectangle contour Square:%lf, Length:%lf", contours_square_lengtn[2][0], contours_square_lengtn[2][1]);
     imshow("Mix_contours", color_binary_contour_image);
     return nearest_contours.size();
 }
@@ -409,38 +421,40 @@ int decideReport(double contours_square_lengtn[3][2])
 
     static char answer_name[4][10] = {"No Answer", "Rock", "Paper", "Scissors"};
     static int return_result;
-    static double nearest_contour_square, hull_contour_square;
-    nearest_contour_square = contours_square_lengtn[0][1];
-    hull_contour_square = contours_square_lengtn[1][1];
-    static double sub_hull_nearest;
-    sub_hull_nearest = nearest_contour_square - hull_contour_square;
+    static double nearest_contour_lengtn, hull_contour_length;
+    nearest_contour_lengtn = contours_square_lengtn[0][1];
+    hull_contour_length = contours_square_lengtn[1][1];
+    static double sub_hull_nearest_length;
+    sub_hull_nearest_length = nearest_contour_lengtn - hull_contour_length;
 
-    printf("\nNearest contour Length in decideReport:%lf, Square:%lf\n", contours_square_lengtn[0][0], contours_square_lengtn[0][1]);
-    printf("\nHull contour Length in decideReport:%lf, Square:%lf\n", contours_square_lengtn[1][0], contours_square_lengtn[1][1]);
-    printf("\nRectangle contour Length in decideReport:%lf, Square:%lf\n", contours_square_lengtn[2][0], contours_square_lengtn[2][1]);
+    /*
+    printf("\nNearest contour Square in decideReport:%lf, Length:%lf\n", contours_square_lengtn[0][0], contours_square_lengtn[0][1]);
+    printf("\nHull contour Square in decideReport:%lf, Length:%lf\n", contours_square_lengtn[1][0], contours_square_lengtn[1][1]);
+    printf("\nRectangle contour Square in decideReport:%lf, Length:%lf\n", contours_square_lengtn[2][0], contours_square_lengtn[2][1]);
+    */
 
-    printf("\nHull contour square in decideReport is %lf\n", hull_contour_square);
-    printf("\nNearest contour square in decideReport is %lf\n", nearest_contour_square);
-    printf("\nSubtract between hull and nearest in decideReport is %lf\n", sub_hull_nearest);
-    if (sub_hull_nearest > 30 && sub_hull_nearest < 150)
+    //printf("\nHull contour square in decideReport is %lf\n", hull_contour_length);
+    //printf("\nNearest contour square in decideReport is %lf\n", nearest_contour_lengtn);
+    printf("\nSubtract of length between hull and nearest in decideReport is %lf", sub_hull_nearest_length);
+    if (sub_hull_nearest_length > 30 && sub_hull_nearest_length < 150)
     {
         return_result = ROCK;
-        printf("\nHuman gives the answer %s\n", answer_name[ROCK]);
+        printf("\nHuman gives the answer %s", answer_name[ROCK]);
     }
-    else if (sub_hull_nearest >= 150 && sub_hull_nearest < 600)
+    else if (sub_hull_nearest_length >= 150 && sub_hull_nearest_length < 600)
     {
         return_result = SCISSORS;
-        printf("\nHuman gives the answer %s\n", answer_name[SCISSORS]);
+        printf("\nHuman gives the answer %s", answer_name[SCISSORS]);
     }
-    else if (sub_hull_nearest >= 600 && sub_hull_nearest < 1500)
+    else if (sub_hull_nearest_length >= 600 && sub_hull_nearest_length < 1500)
     {
         return_result = PAPER;
-        printf("\nHuman gives the answer %s\n", answer_name[PAPER]);
+        printf("\nHuman gives the answer %s", answer_name[PAPER]);
     }
     else
     {
         return_result = NO_ANSWER;
-        printf("\nHuman gives the answer %s\n", answer_name[NO_ANSWER]);
+        printf("\nHuman gives the answer %s", answer_name[NO_ANSWER]);
     }
     return return_result;
 }
@@ -459,7 +473,7 @@ int showResult(int report_result)
         answer_image = imread("0.jpg");
         if (answer_image.empty())
         {
-            printf("\nError 0x50000001:Cannot open answer image %s.\n", answer_name[answer_computer]);
+            printf("\nError 0x50000001:Cannot open answer image %s.", answer_name[answer_computer]);
         }
         break;
     case ROCK:
@@ -467,7 +481,7 @@ int showResult(int report_result)
         answer_image = imread("2.jpg");
         if (answer_image.empty())
         {
-            printf("\nError 0x50000002:Cannot open answer image %s.\n", answer_name[answer_computer]);
+            printf("\nError 0x50000002:Cannot open answer image %s.", answer_name[answer_computer]);
         }
         break;
     case PAPER:
@@ -475,7 +489,7 @@ int showResult(int report_result)
         answer_image = imread("3.jpg");
         if (answer_image.empty())
         {
-            printf("\nError 0x50000003:Cannot open answer image %s.\n", answer_name[answer_computer]);
+            printf("\nError 0x50000003:Cannot open answer image %s.", answer_name[answer_computer]);
         }
         break;
     case SCISSORS:
@@ -483,7 +497,7 @@ int showResult(int report_result)
         answer_image = imread("1.jpg");
         if (answer_image.empty())
         {
-            printf("\nError 0x50000004:Cannot open answer image %s.\n", answer_name[answer_computer]);
+            printf("\nError 0x50000004:Cannot open answer image %s.", answer_name[answer_computer]);
         }
         break;
     default:
@@ -491,13 +505,13 @@ int showResult(int report_result)
         answer_image = imread("0.jpg");
         if (answer_image.empty())
         {
-            printf("\nError 0x50000001:Cannot open answer image %s.\n", answer_name[answer_computer]);
+            printf("\nError 0x50000001:Cannot open answer image %s.", answer_name[answer_computer]);
         }
-        printf("\nError 0x50000001:Cannot find suitable answer image.\n");
+        printf("\nError 0x50000001:Cannot find suitable answer image.");
         break;
     }
 
-    printf("\nComputer gives answer %s.\n", answer_name[answer_computer]);
+    printf("\nComputer gives answer %s.", answer_name[answer_computer]);
     if (!answer_image.empty())
     {
         resize(answer_image, answer_image, Size(512, 512));
