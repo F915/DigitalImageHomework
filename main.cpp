@@ -5,7 +5,7 @@
 //                                                      //
 //                                                      //
 //                       F915                           //
-//          https://github.com/F915/FingersGame         //
+//     https://github.com/F915/Rock-Paper-Scissors      //
 //                     2018.05.05                       //
 //******************************************************//
 
@@ -14,6 +14,7 @@
 //2018.05.06    Restructuring codes.
 //2018.05.07    Finish processFlame function.
 //2018.05.08    Finish all functions.
+//2018.05.16    Update deciding algorithms.
 
 #include <iostream>
 #include <cstdio>
@@ -113,7 +114,7 @@ int initProgram(char *input_name, int *input_type)
     printf("//                                                      //\n");
     printf("//                                                      //\n");
     printf("//                       F915                           //\n");
-    printf("//          https://github.com/F915/FingersGame         //\n");
+    printf("//     https://github.com/F915/Rock-Paper-Scissors      //\n");
     printf("//                     2018.05.05                       //\n");
     printf("//******************************************************//\n");
 
@@ -230,7 +231,7 @@ Mat processFlame(Mat origin_image)
     //printf("\nProcess H channal OK\n");
     binary_s_channal = processChannal(s_channal, S_CHANNAL);
     //printf("\nProcess S channal OK\n");
-     printf("\nMix 2 binary channals OK");
+    printf("\nMix 2 binary channals OK");
     return binary_h_channal & binary_s_channal;
     //If Kinect used.
     //Mat processDChannal(Mat origin_image);
@@ -322,9 +323,9 @@ Mat processChannal(Mat single_channal, int channal_type)
         GaussianBlur(single_channal, single_channal, Size(gauss_kernal_size * 2 + 1, gauss_kernal_size * 2 + 1), 0);
         threshold(single_channal, single_channal, threshold_value_high, 255, THRESH_TOZERO_INV);
         threshold(single_channal, single_channal, threshold_value_low, 255, THRESH_TOZERO);
-        threshold(single_channal, single_channal, 0, 255, THRESH_BINARY_INV);
         erode(single_channal, single_channal, erode_element);
         dilate(single_channal, single_channal, dilate_element);
+        threshold(single_channal, single_channal, 0, 255, THRESH_BINARY_INV);
 
         return_mat = single_channal;
         if (!return_mat.empty())
@@ -353,8 +354,8 @@ int processContour(Mat binary_contour_image, double contours_square_lengtn[3][2]
 
     RotatedRect min_rectangle_points;
     Point2f single_rectangle_point[4];
-    drawContours(color_binary_contour_image, nearest_contours, -1, Scalar(255, 0, 0), 1);
-    drawContours(color_binary_contour_image, contours_hull, -1, Scalar(0, 255, 0), 1);
+    drawContours(color_binary_contour_image, nearest_contours, -1, Scalar(255, 0, 0), 3);
+    drawContours(color_binary_contour_image, contours_hull, -1, Scalar(0, 255, 0), 3);
     static double current_contour_square, current_contour_length;
 
     for (int i = 0; i < nearest_contours.size(); i++)
@@ -375,7 +376,7 @@ int processContour(Mat binary_contour_image, double contours_square_lengtn[3][2]
         }
         for (int j = 0; j < 4; j++)
         {
-            line(color_binary_contour_image, single_rectangle_point[j], single_rectangle_point[(j + 1) % 4], Scalar(0, 0, 255), 1);
+            line(color_binary_contour_image, single_rectangle_point[j], single_rectangle_point[(j + 1) % 4], Scalar(0, 0, 255), 3);
         }
     }
     printf("\nFound other contours OK");
@@ -421,11 +422,45 @@ int decideReport(double contours_square_lengtn[3][2])
 
     static char answer_name[4][10] = {"No Answer", "Rock", "Paper", "Scissors"};
     static int return_result;
+
     static double nearest_contour_lengtn, hull_contour_length;
     nearest_contour_lengtn = contours_square_lengtn[0][1];
     hull_contour_length = contours_square_lengtn[1][1];
-    static double sub_hull_nearest_length;
+
+    static double nearest_contour_square, hull_contour_square;
+    nearest_contour_square = contours_square_lengtn[0][0];
+    hull_contour_square = contours_square_lengtn[1][0];
+
+    static double sub_hull_nearest_length, sub_hull_nearest_square;
     sub_hull_nearest_length = nearest_contour_lengtn - hull_contour_length;
+    sub_hull_nearest_square = nearest_contour_square - hull_contour_square;
+
+    printf("\nSubtract of length between hull and nearest in decideReport is %lf", sub_hull_nearest_length);
+    printf("\nSubtract of square between hull and nearest in decideReport is %lf", sub_hull_nearest_square);
+
+    static double decide_index;
+    decide_index = (pow(sub_hull_nearest_length, 2) / sub_hull_nearest_square);
+
+    if (decide_index > 50 && decide_index < 120)
+    {
+        return_result = ROCK;
+        printf("\nHuman gives the answer %s", answer_name[ROCK]);
+    }
+    else if (decide_index >= 120 && decide_index < 600)
+    {
+        return_result = SCISSORS;
+        printf("\nHuman gives the answer %s", answer_name[SCISSORS]);
+    }
+    else if (decide_index >= 600 && decide_index < 1500)
+    {
+        return_result = PAPER;
+        printf("\nHuman gives the answer %s", answer_name[PAPER]);
+    }
+    else
+    {
+        return_result = NO_ANSWER;
+        printf("\nHuman gives the answer %s", answer_name[NO_ANSWER]);
+    }
 
     /*
     printf("\nNearest contour Square in decideReport:%lf, Length:%lf\n", contours_square_lengtn[0][0], contours_square_lengtn[0][1]);
@@ -435,13 +470,15 @@ int decideReport(double contours_square_lengtn[3][2])
 
     //printf("\nHull contour square in decideReport is %lf\n", hull_contour_length);
     //printf("\nNearest contour square in decideReport is %lf\n", nearest_contour_lengtn);
+
+    /*
     printf("\nSubtract of length between hull and nearest in decideReport is %lf", sub_hull_nearest_length);
-    if (sub_hull_nearest_length > 30 && sub_hull_nearest_length < 150)
+    if (sub_hull_nearest_length > 50 && sub_hull_nearest_length < 120)
     {
         return_result = ROCK;
         printf("\nHuman gives the answer %s", answer_name[ROCK]);
     }
-    else if (sub_hull_nearest_length >= 150 && sub_hull_nearest_length < 600)
+    else if (sub_hull_nearest_length >= 120 && sub_hull_nearest_length < 600)
     {
         return_result = SCISSORS;
         printf("\nHuman gives the answer %s", answer_name[SCISSORS]);
@@ -456,6 +493,7 @@ int decideReport(double contours_square_lengtn[3][2])
         return_result = NO_ANSWER;
         printf("\nHuman gives the answer %s", answer_name[NO_ANSWER]);
     }
+    */
     return return_result;
 }
 
