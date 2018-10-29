@@ -1,5 +1,3 @@
-<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=default"></script>
-
 # Rock, Paper, Scissors
 
 F915  
@@ -30,10 +28,10 @@ Windows is in a similar way.
 Why it works? I don't know. But it just works, yet.
 
 1. some preprocessing(eg. gauss blur)
-1. it divide the contours of the hand, and calculate the \\(square_c\\) and \\(length_c\\).
-1. depend on contours, find the convex hull with its \\(square_h\\) and \\(length_h\\).
-1. Normalize the index by $$i=\frac{length_c^2-length_h^2}{square_c-square_h}$$ 
-1. decide the answer by \\(i\\) index.
+1. it divide the contours of the hand, and calculate the square_c and length_c.
+1. depend on contours, find the convex hull with its square_h and length_h.
+1. Normalize the index by <img src="https://latex.codecogs.com/gif.latex?i%3D%5Cfrac%7Blength_c%5E2-length_h%5E2%7D%7Bsquare_c-square_h%7D"> 
+1. decide the answer by i index.
 
 
 
